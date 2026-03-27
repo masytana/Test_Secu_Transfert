@@ -59,7 +59,7 @@ app.get('/', (req, res) => {
       <ul>
         <li>L'admin crée ou insère un mot de passe</li>
         <li>Le mot de passe est chiffré avant stockage dans une variable temporaire</li>
-        <li>Un UUID est généré pour créer un lien unique</li>
+        <li>Un UUID est généré pour créer un lien unique encore en local et http</li>
         <li>Le lien expire après clic ou 1h</li>
         <li>Mot de passe affiché masqué mais copiable</li>
         <li>Usage unique puis suppression de la variable temporaire</li>
