@@ -1,19 +1,15 @@
-// server.js
-// Importation des modules
-const express = require('express'); //framework web pour créer le serveur et les routes HTTP
-const crypto = require('crypto'); //bibliothèque native Node.js pour chiffrer/déchiffrer les mots de passe
-const { v4: uuidv4 } = require('uuid'); //générer des identifiants uniques (UUID) pour chaque lien sécurisé
+const express = require('express');
+const crypto = require('crypto');
+const { v4: uuidv4 } = require('uuid');
 
-//Initialisation serveur
-const app = express(); //instance de l'application Express
-const port = 5000; //Port d'écoute du serveur
+const app = express();
+const port = process.env.PORT || 5000;
 
-// Stockage temporaire des mots de passe chiffrés, la clé, l’IV, l’UUID et la date
+// Stockage temporaire
 const passwordStore = {};
 
 // ---------- Fonctions ----------
-//Génération de mot de passe aléatoire à 12 caractères à partir des chars proposés
-function generatePassword(length = 12) { // longueur limitée à 12 caractères
+function generatePassword(length = 12) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?/~`';
   let pwd = '';
   for (let i = 0; i < length; i++) {
@@ -22,10 +18,8 @@ function generatePassword(length = 12) { // longueur limitée à 12 caractères
   return pwd;
 }
 
-//Chiffre le mot de passe avec AES-256-CBC : key et iv sont générés aléatoirement
-//Retourne : encrypted → mot de passe chiffré + key et iv → nécessaires pour déchiffrer plus tard
 function encryptPassword(pwd) {
-  const key = crypto.randomBytes(32); // AES-256
+  const key = crypto.randomBytes(32);
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
   let encrypted = cipher.update(pwd, 'utf8', 'base64');
@@ -33,8 +27,6 @@ function encryptPassword(pwd) {
   return { encrypted, key: key.toString('base64'), iv: iv.toString('base64') };
 }
 
-//Déchiffre un mot de passe à partir de l’encrypted, la key et l’iv
-//Retourne le mot de passe en clair
 function decryptPassword(encrypted, keyBase64, ivBase64) {
   const key = Buffer.from(keyBase64, 'base64');
   const iv = Buffer.from(ivBase64, 'base64');
@@ -44,49 +36,149 @@ function decryptPassword(encrypted, keyBase64, ivBase64) {
   return decrypted;
 }
 
-// ---------- Routes ----------
-// Page d'accueil
-//Options pour générer un mot de passe et pour sécuriser un mot de passe existant via formulaire
+// ---------- ROUTES ----------
+
+// 🟢 PAGE 1 : Accueil
 app.get('/', (req, res) => {
   res.send(`
     <html>
     <body>
-      <h2>Serveur de mot de passe sécurisé</h2>
-      <p><a href="/generate">Générer un nouveau mot de passe</a></p>
-      <p>Ou sécuriser un mot de passe existant :</p>
-      <form action="/send" method="get">
-        <input type="text" name="pwd" placeholder="Mot de passe existant" required>
-        <button type="submit">Envoyer en lien sécurisé</button>
-      </form>
-      <p>Les mots de passe sont à usage unique et expirent après 1h.</p>
+      <h2>Bienvenue sur cette plateforme de sécurisation du transfert des secrets</h2>
+
+      <p><strong>Développée et déployée par RAKOTONIRINA Daniella Nandrianina Natacha</strong><br>
+      Stagiaire au sein du département Sécurité SI chez Orange Madagascar</p>
+
+      <p>
+      -Technologie utilisée : Node.js v24.11.1<br>
+      -Méthode de chiffrement : AES-256-CBC (crypto)<br>
+      -UUID pour chaque lien sécurisé<br>
+      -Déployé sur Render
+      </p>
+
+      <h3>Fonctionnement :</h3>
+      <ul>
+        <li>L'admin crée ou insère un mot de passe</li>
+        <li>Le mot de passe est chiffré avant stockage dans une variable temporaire</li>
+        <li>Un UUID est généré pour créer un lien unique</li>
+        <li>Le lien expire après clic ou 1h</li>
+        <li>Mot de passe affiché masqué mais copiable</li>
+        <li>Usage unique puis suppression de la variable temporaire</li>
+      </ul>
+
+      <h3>Remarque :</h3>
+      <ul>
+        <li>Cette version n'a pas encore de base de données</li>
+        <li>Une page d'authentification des admins(limités au nombre de 2) sera mise en place</li>
+      </ul>
+
+      <p><i>Mes compétences en front-end sont en vacances haha!</i></p>
+
+      <a href="/setup">
+        <button>Commencer la simulation</button>
+      </a>
     </body>
     </html>
   `);
 });
 
-// Générer nouveau mot de passe
-//Crée un mot de passe aléatoire - Chiffre le mot de passe -Stocke dans passwordStore avec UUID, timestamp et TTL 1h -Génère le lien sécurisé
+// 🟡 PAGE 2 : Formulaire
+app.get('/setup', (req, res) => {
+  res.send(`
+    <html>
+    <body>
+      <h2>Informations de la simulation</h2>
+      <form action="/home" method="get">
+        <input type="text" name="admin" placeholder="Admin (trigramme)" required><br><br>
+        <input type="text" name="service" placeholder="Service" required><br><br>
+        <input type="text" name="user" placeholder="Utilisateur (trigramme)" required><br><br>
+        <button type="submit">Continuer</button>
+      </form>
+    </body>
+    </html>
+  `);
+});
+
+// 🔵 PAGE 3 : Menu principal
+app.get('/home', (req, res) => {
+  const { admin, service, user } = req.query;
+
+  res.send(`
+    <html>
+    <body>
+      <h2>Création du lien sécurisé</h2>
+
+      <p><strong>Admin:</strong> ${admin} | 
+      <strong>Service:</strong> ${service} | 
+      <strong>Utilisateur:</strong> ${user}</p>
+
+      <p><a href="/generate?admin=${admin}&service=${service}&user=${user}">Générer un nouveau mot de passe</a></p>
+
+      <p>Ou sécuriser un mot de passe existant :</p>
+      <form action="/send" method="get">
+        <input type="hidden" name="admin" value="${admin}">
+        <input type="hidden" name="service" value="${service}">
+        <input type="hidden" name="user" value="${user}">
+        <input type="text" name="pwd" placeholder="Mot de passe existant" required>
+        <button type="submit">Envoyer en lien sécurisé</button>
+      </form>
+
+      <p>Les mots de passe expirent après 1h.</p>
+    </body>
+    </html>
+  `);
+});
+
+// Génération
 app.get('/generate', (req, res) => {
-  const pwd = generatePassword(); // 12 caractères
+  const { admin, service, user } = req.query;
+
+  const pwd = generatePassword();
   const { encrypted, key, iv } = encryptPassword(pwd);
   const id = uuidv4();
-  passwordStore[id] = { encrypted, key, iv, timestamp: Date.now(), ttl: 3600000 };
-  res.send(`Nouveau mot de passe généré ! Lien sécurisé : <a href="/access/${id}">http://localhost:${port}/access/${id}</a>`);
+
+  passwordStore[id] = {
+    encrypted,
+    key,
+    iv,
+    timestamp: Date.now(),
+    ttl: 3600000,
+    admin,
+    service,
+    user
+  };
+
+  res.send(`
+    Lien sécurisé : 
+    <a href="/access/${id}">http://localhost:${port}/access/${id}</a>
+  `);
 });
 
-// Sécuriser mot de passe existant
-//Même logique que /generate mais pour un mot de passe fourni par l’utilisateur
+// Envoi
 app.get('/send', (req, res) => {
-  const { pwd } = req.query;
+  const { pwd, admin, service, user } = req.query;
   if (!pwd) return res.send('Erreur : mot de passe manquant.');
+
   const { encrypted, key, iv } = encryptPassword(pwd);
   const id = uuidv4();
-  passwordStore[id] = { encrypted, key, iv, timestamp: Date.now(), ttl: 3600000 };
-  res.send(`Lien sécurisé généré : <a href="/access/${id}">http://localhost:${port}/access/${id}</a>`);
+
+  passwordStore[id] = {
+    encrypted,
+    key,
+    iv,
+    timestamp: Date.now(),
+    ttl: 3600000,
+    admin,
+    service,
+    user
+  };
+
+  res.send(`
+    Lien sécurisé : 
+    <a href="/access/${id}">http://localhost:${port}/access/${id}</a>
+  `);
 });
 
-// Accéder au mot de passe via UUID
-//Vérifie si l’UUID existe et si le TTL n’est pas dépassé - Déchiffre le mot de passe - Supprime l’entrée pour usage unique - Affiche le mot de passe masqué + bouton “Copier”
+// Accès
 app.get('/access/:id', (req, res) => {
   const data = passwordStore[req.params.id];
   if (!data) return res.send('Lien invalide ou expiré.');
@@ -102,17 +194,16 @@ app.get('/access/:id', (req, res) => {
   res.send(`
     <html>
     <body>
-      <p>Mot de passe : 
-         <input type="password" value="${pwd}" id="pwd" readonly>
-         <button onclick="navigator.clipboard.writeText(document.getElementById('pwd').value)">Copier</button>
+      <p>Mot de passe :
+        <input type="password" value="${pwd}" id="pwd" readonly>
+        <button onclick="navigator.clipboard.writeText(document.getElementById('pwd').value)">Copier</button>
       </p>
-      <p>Copiez-le dans KeePass et fermez cette page.</p>
     </body>
     </html>
   `);
 });
 
-
-
-// Lancer serveur
-app.listen(port, '0.0.0.0', () => console.log(`Serveur Node.js démarré sur http://localhost:${port}`));
+// Serveur
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Serveur démarré sur http://localhost:${port}`);
+});
