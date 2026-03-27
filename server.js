@@ -67,7 +67,7 @@ app.get('/', (req, res) => {
 
       <h3>Remarque :</h3>
       <ul>
-        <li>Cette version n'a pas encore de base de données</li>
+        <li>Cette version n'a pas encore de base de données d'où l'absence du champ "Historique"</li>
         <li>Une page d'authentification des admins(limités au nombre de 2) sera mise en place</li>
       </ul>
 
