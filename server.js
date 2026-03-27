@@ -52,7 +52,7 @@ app.get('/', (req, res) => {
       -Technologie utilisée : Node.js v24.11.1<br>
       -Méthode de chiffrement : AES-256-CBC (crypto)<br>
       -UUID pour chaque lien sécurisé<br>
-      -Déployé sur Render
+      -Déployée sur Render
       </p>
 
       <h3>Fonctionnement :</h3>
